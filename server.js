@@ -13,10 +13,6 @@ app.use(bodyParser.json());
 const db = new Low(new JSONFile("db.json"), {});
 await db.read();
 
-function generateNumericID() {
-  return Math.floor(100000 + Math.random() * 900000);
-}
-
 function getHash() {
   return process.env.SERVER_HASH || db.data.config?.hash || null;
 }
@@ -25,6 +21,15 @@ function validateHash(hash) {
   const serverHash = getHash();
   if (!serverHash) return true;
   return hash === serverHash;
+}
+
+// Função para gerar um ID numérico de 6 dígitos
+function generateNumericId() {
+  let newId;
+  do {
+    newId = Math.floor(100000 + Math.random() * 900000);
+  } while (db.data.users && db.data.users.some((u) => u.id === newId));
+  return newId;
 }
 
 const COUNTRY_TO_CONTINENT = {
@@ -78,7 +83,7 @@ app.get("/hash", (req, res) => {
 });
 
 app.get("/auth", (req, res) => {
-  const queryUser = (req.query.user || "").trim().toLowerCase();
+  const username = (req.query.user || "").trim().toLowerCase();
   const hash = (req.query.hash || "").trim();
 
   if (!validateHash(hash)) {
@@ -89,10 +94,9 @@ app.get("/auth", (req, res) => {
     return res.send("off");
   }
 
-  const isBanned = db.data.bans.some((b) => {
-    const val = String(b).trim().toLowerCase();
-    return val === queryUser;
-  });
+  const isBanned = db.data.bans.some(
+    (b) => b.trim().toLowerCase() === username
+  );
 
   if (isBanned) {
     return res.send("banned");
@@ -101,8 +105,10 @@ app.get("/auth", (req, res) => {
   res.send("on");
 });
 
-app.post("/user/login/", async (req, res) => {
-  const { deviceId, country, hash } = req.body;
+app.post("/user/login", async (req, res) => {
+  const deviceId = req.body.deviceId || req.body.DeviceId;
+  const country = req.body.country || req.body.Country;
+  const hash = req.body.hash || req.body.Hash;
 
   if (!deviceId) {
     return res.status(400).json({ error: "deviceId required" });
@@ -112,20 +118,17 @@ app.post("/user/login/", async (req, res) => {
     return res.status(401).json({ error: "invalid hash" });
   }
 
+  await db.read();
+
   let user = db.data.users.find((u) => u.deviceId === deviceId);
 
   if (!user) {
-    let newId = generateNumericID();
-    while (db.data.users.some((u) => u.id === newId || u.userId === newId)) {
-      newId = generateNumericID();
-    }
-
+    const numericId = generateNumericId();
     user = {
-      id: newId,
-      userId: newId,
+      id: numericId,
       deviceId,
       continent: getContinent(country),
-      username: "StumbleZesty" + newId,
+      username: "PlayerZesty" + Math.floor(1000 + Math.random() * 9000),
       crowns: 0,
       gems: 500,
       trophys: 0,
@@ -140,22 +143,16 @@ app.post("/user/login/", async (req, res) => {
 
   const isBanned =
     user.banned ||
-    db.data.bans.some((b) => {
-      const val = String(b).trim().toLowerCase();
-      return (
-        val === String(user.id) ||
-        val === String(user.userId) ||
-        val === user.username.trim().toLowerCase()
-      );
-    });
+    db.data.bans.some(
+      (b) => b.trim().toLowerCase() === user.username.trim().toLowerCase()
+    );
 
   if (isBanned) {
     return res.json({ banned: true });
   }
 
   res.json({
-    id: user.id,
-    userId: user.id,
+    id: Number(user.id),
     username: user.username,
     country: user.continent,
     trophys: user.trophys,
@@ -168,7 +165,8 @@ app.post("/user/login/", async (req, res) => {
 });
 
 app.post("/user/update", async (req, res) => {
-  const { deviceId, hash } = req.body;
+  const deviceId = req.body.deviceId || req.body.DeviceId;
+  const hash = req.body.hash || req.body.Hash;
   const username = req.body.username || req.body.Username;
 
   if (!validateHash(hash)) {
@@ -181,7 +179,21 @@ app.post("/user/update", async (req, res) => {
 
   const trimmed = username.trim();
 
+  if (trimmed.length < 4 || trimmed.length > 12) {
+    return res.status(400).json({ error: "username must be between 4 and 12 characters" });
+  }
+
   await db.read();
+
+  const nameExists = db.data.users.some(
+    (u) =>
+      u.deviceId !== deviceId &&
+      u.username.trim().toLowerCase() === trimmed.toLowerCase()
+  );
+
+  if (nameExists) {
+    return res.status(409).json({ error: "username already taken" });
+  }
 
   const user = db.data.users.find((u) => u.deviceId === deviceId);
 
@@ -193,8 +205,7 @@ app.post("/user/update", async (req, res) => {
   scheduleWrite();
 
   res.json({
-    id: user.id,
-    userId: user.id,
+    id: Number(user.id),
     username: user.username,
     country: user.continent,
     trophys: user.trophys,
@@ -207,7 +218,8 @@ app.post("/user/update", async (req, res) => {
 });
 
 app.post("/user/updateusername", async (req, res) => {
-  const { deviceId, hash } = req.body;
+  const deviceId = req.body.deviceId || req.body.DeviceId;
+  const hash = req.body.hash || req.body.Hash;
   const username = req.body.username || req.body.Username;
 
   if (!validateHash(hash)) {
@@ -219,6 +231,10 @@ app.post("/user/updateusername", async (req, res) => {
   }
 
   const trimmed = username.trim();
+
+  if (trimmed.length < 4 || trimmed.length > 12) {
+    return res.status(400).json({ error: "username must be between 4 and 12 characters" });
+  }
 
   await db.read();
 
@@ -233,13 +249,22 @@ app.post("/user/updateusername", async (req, res) => {
     return res.status(402).json({ error: "not enough gems" });
   }
 
+  const nameExists = db.data.users.some(
+    (u) =>
+      u.deviceId !== deviceId &&
+      u.username.trim().toLowerCase() === trimmed.toLowerCase()
+  );
+
+  if (nameExists) {
+    return res.status(409).json({ error: "username already taken" });
+  }
+
   user.username = trimmed;
   user.gems -= GEM_COST;
   scheduleWrite();
 
   res.json({
-    id: user.id,
-    userId: user.id,
+    id: Number(user.id),
     username: user.username,
     country: user.continent,
     trophys: user.trophys,
@@ -252,39 +277,25 @@ app.post("/user/updateusername", async (req, res) => {
 });
 
 app.post("/admin/ban", async (req, res) => {
-  const { target, action } = req.body;
-  const queryTarget = target || req.body.username || req.body.id || req.body.userId;
+  const { username, action } = req.body;
 
-  if (!queryTarget || !["ban", "unban"].includes(action)) {
-    return res.status(400).json({ error: "target + action required" });
+  if (!username || !["ban", "unban"].includes(action)) {
+    return res.status(400).json({ error: "username + action required" });
   }
 
   await db.read();
 
-  const targetStr = String(queryTarget).trim().toLowerCase();
-
-  const userObj = db.data.users.find(
-    (u) =>
-      String(u.id) === targetStr ||
-      String(u.userId) === targetStr ||
-      u.username.trim().toLowerCase() === targetStr
-  );
+  const name = username.trim().toLowerCase();
 
   if (action === "ban") {
-    if (!db.data.bans.includes(targetStr)) {
-      db.data.bans.push(targetStr);
+    if (!db.data.bans.includes(name)) {
+      db.data.bans.push(name);
+      await db.write();
     }
-    if (userObj) {
-      userObj.banned = true;
-    }
-    await db.write();
     return res.json({ success: true });
   }
 
-  db.data.bans = db.data.bans.filter((b) => String(b).trim().toLowerCase() !== targetStr);
-  if (userObj) {
-    userObj.banned = false;
-  }
+  db.data.bans = db.data.bans.filter((b) => b !== name);
   await db.write();
   res.json({ success: true });
 });
