@@ -136,7 +136,7 @@ app.post("/user/login", async (req, res) => {
     const numericId = generateNumericId();
     user = {
       id: numericId,
-      deviceId: deviceId,
+      "deviceId": deviceId,
       continent: getContinent(country),
       username: "PlayerZesty" + Math.floor(1000 + Math.random() * 9000),
       crowns: 0,
