@@ -10,8 +10,16 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-const db = new Low(new JSONFile("db.json"), {});
+const db = new Low(new JSONFile("db.json"), {
+  config: { name: "Gztxx7Backend", version: "1.0.0", author: "@gztxx7", maintenance: false, hash: "GZTXX7-189jaiu-&B!(p093=2-0!#45v" },
+  users: [],
+  bans: []
+});
 await db.read();
+
+if (!db.data.users) db.data.users = [];
+if (!db.data.bans) db.data.bans = [];
+if (!db.data.config) db.data.config = { maintenance: false, hash: null };
 
 function getHash() {
   return process.env.SERVER_HASH || db.data.config?.hash || null;
@@ -23,12 +31,14 @@ function validateHash(hash) {
   return hash === serverHash;
 }
 
-// Gera um ID numérico único de 6 dígitos
 function generateNumericId() {
   let newId;
+  const existingIds = new Set(db.data.users?.map(u => u.id) || []);
+  
   do {
     newId = Math.floor(100000 + Math.random() * 900000);
-  } while (db.data.users && db.data.users.some((u) => u.id === newId));
+  } while (existingIds.has(newId));
+  
   return newId;
 }
 
@@ -151,8 +161,8 @@ app.post("/user/login", async (req, res) => {
     return res.json({ banned: true });
   }
 
-  res.json({
-    id: Number(user.id),
+  return res.json({
+    id: user.id,
     username: user.username,
     country: user.continent,
     trophys: user.trophys,
@@ -179,11 +189,17 @@ app.post("/user/update", async (req, res) => {
 
   const trimmed = username.trim();
 
-  if (trimmed.length < 4 || trimmed.length > 12) {
-    return res.status(400).json({ error: "username must be between 4 and 12 characters" });
+  if (trimmed.length < 4 || trimmed.length > 24) {
+    return res.status(400).json({ error: "username must be between 4 and 24 characters" });
   }
 
   await db.read();
+
+  const user = db.data.users.find((u) => u.deviceId === deviceId);
+
+  if (!user) {
+    return res.status(404).json({ error: "user not found" });
+  }
 
   const nameExists = db.data.users.some(
     (u) =>
@@ -195,17 +211,11 @@ app.post("/user/update", async (req, res) => {
     return res.status(409).json({ error: "username already taken" });
   }
 
-  const user = db.data.users.find((u) => u.deviceId === deviceId);
-
-  if (!user) {
-    return res.status(404).json({ error: "user not found" });
-  }
-
   user.username = trimmed;
   scheduleWrite();
 
-  res.json({
-    id: Number(user.id),
+  return res.json({
+    id: user.id,
     username: user.username,
     country: user.continent,
     trophys: user.trophys,
@@ -232,8 +242,8 @@ app.post("/user/updateusername", async (req, res) => {
 
   const trimmed = username.trim();
 
-  if (trimmed.length < 4 || trimmed.length > 12) {
-    return res.status(400).json({ error: "username must be between 4 and 12 characters" });
+  if (trimmed.length < 4 || trimmed.length > 24) {
+    return res.status(400).json({ error: "username must be between 4 and 24 characters" });
   }
 
   await db.read();
@@ -263,8 +273,8 @@ app.post("/user/updateusername", async (req, res) => {
   user.gems -= GEM_COST;
   scheduleWrite();
 
-  res.json({
-    id: Number(user.id),
+  return res.json({
+    id: user.id,
     username: user.username,
     country: user.continent,
     trophys: user.trophys,
@@ -274,6 +284,31 @@ app.post("/user/updateusername", async (req, res) => {
     coins: user.coins,
     banned: false,
   });
+});
+
+app.get("/user/id", async (req, res) => {
+  const deviceId = req.query.deviceId;
+  
+  if (!deviceId) {
+    return res.status(400).json({ error: "deviceId required" });
+  }
+
+  await db.read();
+  const user = db.data.users.find((u) => u.deviceId === deviceId);
+
+  if (!user) {
+    return res.status(404).json({ error: "user not found" });
+  }
+
+  return res.json({
+    id: user.id,
+    username: user.username
+  });
+});
+
+app.get("/admin/users", async (req, res) => {
+  await db.read();
+  res.json(db.data.users);
 });
 
 app.post("/admin/ban", async (req, res) => {
@@ -312,11 +347,6 @@ app.post("/admin/set-hash", async (req, res) => {
   await db.write();
 
   res.json({ success: true });
-});
-
-app.get("/admin/users", async (req, res) => {
-  await db.read();
-  res.json(db.data.users);
 });
 
 app.listen(PORT, () => {
