@@ -8,9 +8,33 @@
   },
   "users": [
     {
-      "id": 0,
-      "deviceId": deviceId,
-      "username": "<color=red>gztxx7",
+      "id": 123456,
+      "deviceId": "device_user_1",
+      "username": "PlayerZesty#123456",
+      "banned": false
+    },
+    {
+      "id": 234567,
+      "deviceId": "device_user_2",
+      "username": "NomeZesty#234567",
+      "banned": false
+    },
+    {
+      "id": 345678,
+      "deviceId": "device_user_3",
+      "username": "OtherPlayer#345678",
+      "banned": false
+    },
+    {
+      "id": 456789,
+      "deviceId": "device_user_4",
+      "username": "MeuNome#456789",
+      "banned": false
+    },
+    {
+      "id": 567890,
+      "deviceId": "device_user_5",
+      "username": "TopPlayer#567890",
       "banned": false
     }
   ],
