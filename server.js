@@ -11,7 +11,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const db = new Low(new JSONFile("db.json"), {
-  config: { name: "Gztxx7Backend", version: "1.0.0", author: "@gztxx7", maintenance: false, hash: "GZTXX7-189jaiu-&B!(p093=2-0!#45v" },
+  config: { name: "sgzestygztxx7", version: "1.0.0", author: "@gztxx7", maintenance: false, hash: "GZTXX7-189jaiu-&B!(p093=2-0!#45v" },
   users: [],
   bans: []
 });
@@ -19,7 +19,7 @@ await db.read();
 
 if (!db.data.users) db.data.users = [];
 if (!db.data.bans) db.data.bans = [];
-if (!db.data.config) db.data.config = { maintenance: false, hash: null };
+if (!db.data.config) db.data.config = { name: "sgzestygztxx7", maintenance: false, hash: "GZTXX7-189jaiu-&B!(p093=2-0!#45v" };
 
 function getHash() {
   return process.env.SERVER_HASH || db.data.config?.hash || null;
@@ -116,9 +116,9 @@ app.get("/auth", (req, res) => {
 });
 
 app.post("/user/login", async (req, res) => {
-  const deviceId = req.body.deviceId || req.body.DeviceId;
-  const country = req.body.country || req.body.Country;
-  const hash = req.body.hash || req.body.Hash;
+  const deviceId = req.body.deviceId;
+  const country = req.body.country;
+  const hash = req.body.hash;
 
   if (!deviceId) {
     return res.status(400).json({ error: "deviceId required" });
@@ -164,20 +164,14 @@ app.post("/user/login", async (req, res) => {
   return res.json({
     id: user.id,
     username: user.username,
-    country: user.continent,
-    trophys: user.trophys,
-    crowns: user.crowns,
-    experience: user.experience,
-    gems: user.gems,
-    coins: user.coins,
     banned: false,
   });
 });
 
 app.post("/user/update", async (req, res) => {
-  const deviceId = req.body.deviceId || req.body.DeviceId;
-  const hash = req.body.hash || req.body.Hash;
-  const username = req.body.username || req.body.Username;
+  const deviceId = req.body.deviceId;
+  const hash = req.body.hash;
+  const username = req.body.username;
 
   if (!validateHash(hash)) {
     return res.status(401).json({ error: "invalid hash" });
@@ -217,20 +211,14 @@ app.post("/user/update", async (req, res) => {
   return res.json({
     id: user.id,
     username: user.username,
-    country: user.continent,
-    trophys: user.trophys,
-    crowns: user.crowns,
-    experience: user.experience,
-    gems: user.gems,
-    coins: user.coins,
     banned: false,
   });
 });
 
 app.post("/user/updateusername", async (req, res) => {
-  const deviceId = req.body.deviceId || req.body.DeviceId;
-  const hash = req.body.hash || req.body.Hash;
-  const username = req.body.username || req.body.Username;
+  const deviceId = req.body.deviceId;
+  const hash = req.body.hash;
+  const username = req.body.username;
 
   if (!validateHash(hash)) {
     return res.status(401).json({ error: "invalid hash" });
@@ -276,12 +264,6 @@ app.post("/user/updateusername", async (req, res) => {
   return res.json({
     id: user.id,
     username: user.username,
-    country: user.continent,
-    trophys: user.trophys,
-    crowns: user.crowns,
-    experience: user.experience,
-    gems: user.gems,
-    coins: user.coins,
     banned: false,
   });
 });
