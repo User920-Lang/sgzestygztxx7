@@ -1,6 +1,6 @@
 {
   "config": {
-    "name": "Gztxx7Backend",
+    "name": "sgzestygztxx7",
     "version": "1.0.0",
     "author": "@gztxx7",
     "maintenance": false,
@@ -9,7 +9,9 @@
   "users": [
     {
       "id": 0,
-      "username": "<color=red>gztxx7<color=yellow><sup>DevTBest"
+      "deviceId": deviceId,
+      "username": "<color=red>gztxx7",
+      "banned": false
     }
   ],
   "bans": []
