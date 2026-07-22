@@ -79,38 +79,6 @@ setInterval(async () => {
   await db.read();
 }, 500);
 
-// ==========================================
-// ROTAS DE INICIALIZAÇÃO DO JOGO (ESSENCIAIS)
-// ==========================================
-
-// Rota do Shared (Corrige o "Shared update error!")
-app.get("/shared/:version/:type", (req, res) => {
-  res.json({
-    status: "ok",
-    version: req.params.version,
-    maintenance: false,
-    disable_friends: false,
-    disable_custom_games: false
-  });
-});
-
-app.post("/shared/:version/:type", (req, res) => {
-  res.json({
-    status: "ok",
-    version: req.params.version,
-    maintenance: false
-  });
-});
-
-// Checagem se o servidor está online
-app.get("/onlinecheck", (req, res) => {
-  res.send("OK");
-});
-
-// ==========================================
-// ROTAS PADRÃO DO SISTEMA
-// ==========================================
-
 app.get("/config.json", (req, res) => {
   const { hash, ...safeConfig } = db.data.config;
   res.json(safeConfig);
@@ -168,9 +136,9 @@ app.post("/user/login", async (req, res) => {
     const numericId = generateNumericId();
     user = {
       id: numericId,
-      "deviceId": deviceId,
+      deviceId: deviceId,
       continent: getContinent(country),
-      username: "<color=red>gztxx7<color=yellow><sup>DevTBest",
+      username: "PlayerZesty" + Math.floor(1000 + Math.random() * 9000),
       crowns: 0,
       gems: 500,
       trophys: 0,
@@ -215,8 +183,8 @@ app.post("/user/update", async (req, res) => {
 
   const trimmed = username.trim();
 
-  if (trimmed.length < 4 || trimmed.length > 32) {
-    return res.status(400).json({ error: "username must be between 4 and 32 characters" });
+  if (trimmed.length < 4 || trimmed.length > 24) {
+    return res.status(400).json({ error: "username must be between 4 and 24 characters" });
   }
 
   await db.read();
@@ -262,8 +230,8 @@ app.post("/user/updateusername", async (req, res) => {
 
   const trimmed = username.trim();
 
-  if (trimmed.length < 4 || trimmed.length > 32) {
-    return res.status(400).json({ error: "username must be between 4 and 32 characters" });
+  if (trimmed.length < 4 || trimmed.length > 24) {
+    return res.status(400).json({ error: "username must be between 4 and 24 characters" });
   }
 
   await db.read();
@@ -301,7 +269,8 @@ app.post("/user/updateusername", async (req, res) => {
 });
 
 app.get("/user/id", async (req, res) => {
-  const deviceId = req.query.deviceId;  
+  const deviceId = req.query.deviceId;
+  
   if (!deviceId) {
     return res.status(400).json({ error: "deviceId required" });
   }
