@@ -23,7 +23,7 @@ function validateHash(hash) {
   return hash === serverHash;
 }
 
-// Função para gerar um ID numérico de 6 dígitos
+// Gera um ID numérico único de 6 dígitos
 function generateNumericId() {
   let newId;
   do {
